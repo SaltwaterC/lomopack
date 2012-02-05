@@ -16,7 +16,7 @@
 ; 
 ; azione: 0 = sfocatura, 1 = vignettatura
 ;
-(define (lomo-border theAction inImage inBackground theStrength theSize)
+(define (lomo-border theAction inImage inBackground theStrength theSize theSoftness)
 	(let* 
 		(
 			(inBlur (car (gimp-layer-copy inBackground TRUE)))
@@ -51,7 +51,7 @@
 		(gimp-ellipse-select inImage (/ theWidth theE) (/ theHeight theE) (- theWidth(* (/ theWidth theE) 2)) (- theHeight (* (/ theHeight theE) 2)) 2 TRUE FALSE 0)
 		(gimp-invert theDrawable)
 		(gimp-selection-none inImage)
-		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ theWidth 2) (/ theHeight 2))
+		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ (* (/ theWidth 2) theSoftness) 100) (/ (* (/ theHeight 2) theSoftness) 100))
 			
 		; Fonde il livello della sfocatura
 		(gimp-image-merge-down inImage inBlur 1)
@@ -159,7 +159,7 @@
 	;
 	(if (= theBlur 1)
 		(begin
-			(set! inBackground (lomo-border 0 inImage inBackground 10 9))
+			(set! inBackground (lomo-border 0 inImage inBackground 10 9 100))
 		)
 	)
 
@@ -168,7 +168,7 @@
 	; 
 	(if (> theVign 0)
 		(begin
-			(set! inBackground (lomo-border 1 inImage inBackground theVign 9))
+			(set! inBackground (lomo-border 1 inImage inBackground theVign 9 100))
 		)
 	)
 
@@ -245,21 +245,21 @@
 ; Lomo Border
 ; Permette di scurire e sfumare i bordi
 ;
-(define (script-fu-lomo-border inImage inBackground blurPercent blurSize vignPercent vignSize)
+(define (script-fu-lomo-border inImage inBackground blurPercent blurSize blurSoft vignPercent vignSize vignSoft)
 	; Inizia cronologia
 	(gimp-image-undo-group-start inImage)
 	
 	; Sfocatura (default 10%)
 	(if (> blurPercent 0)
 		(begin
-			(set! inBackground (lomo-border 0 inImage inBackground blurPercent (* (- 11 blurSize) 3)))
+			(set! inBackground (lomo-border 0 inImage inBackground blurPercent (* (- 11 blurSize) 3) blurSoft))
 		)
 	)
 
 	; Vignettatura
 	(if (> vignPercent 0)
 		(begin
-			(set! inBackground (lomo-border 1 inImage inBackground vignPercent (* (- 11 vignSize) 3)))
+			(set! inBackground (lomo-border 1 inImage inBackground vignPercent (* (- 11 vignSize) 3) vignSoft))
 		)
 	)
 
@@ -313,10 +313,12 @@
 	"RGB*"
 	SF-IMAGE "Image" 0
 	SF-DRAWABLE "Livello da duplicare" 0
-	SF-ADJUSTMENT "Sfocatura intensità (%)" '(10 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura (%)" '(10 0 100 1 10 0 0)
 	SF-ADJUSTMENT "Sfocatura dimensione" '(8 1 10 1 10 0 0)
-	SF-ADJUSTMENT "Vignettatura intensità (%)" '(10 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura morbidezza" '(100 1 100 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura (%)" '(10 0 100 1 10 0 0)
 	SF-ADJUSTMENT "Vignettatura dimensione" '(8 1 10 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura morbidezza" '(100 1 100 1 10 0 0)
 )
 
 ; Inserisce i filtri nel menu di Gimp
