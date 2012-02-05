@@ -16,7 +16,7 @@
 ; 
 ; azione: 0 = sfocatura, 1 = vignettatura
 ;
-(define (lomo-border theAction inImage inBackground theStrength)
+(define (lomo-border theAction inImage inBackground theStrength theSize)
 	(let* 
 		(
 			(inBlur (car (gimp-layer-copy inBackground TRUE)))
@@ -26,7 +26,7 @@
 			;(theBlursize (/ (/ (+ theHeight theWidth) 2) 100))
 			(theBlursize (/ (* (/ (+ theHeight theWidth) 20) theStrength) 100))
 			(theDrawable 0)
-			(theE 8)
+			(theE theSize)
 		)
 
 		(gimp-image-add-layer inImage inBlur -1)
@@ -159,7 +159,7 @@
 	;
 	(if (= theBlur 1)
 		(begin
-			(set! inBackground (lomo-border 0 inImage inBackground 10))
+			(set! inBackground (lomo-border 0 inImage inBackground 10 9))
 		)
 	)
 
@@ -168,7 +168,7 @@
 	; 
 	(if (> theVign 0)
 		(begin
-			(set! inBackground (lomo-border 1 inImage inBackground theVign))
+			(set! inBackground (lomo-border 1 inImage inBackground theVign 9))
 		)
 	)
 
@@ -245,21 +245,21 @@
 ; Lomo Border
 ; Permette di scurire e sfumare i bordi
 ;
-(define (script-fu-lomo-border inImage inBackground blurPercent vignPercent)
+(define (script-fu-lomo-border inImage inBackground blurPercent blurSize vignPercent vignSize)
 	; Inizia cronologia
 	(gimp-image-undo-group-start inImage)
 	
 	; Sfocatura (default 10%)
 	(if (> blurPercent 0)
 		(begin
-			(set! inBackground (lomo-border 0 inImage inBackground blurPercent))
+			(set! inBackground (lomo-border 0 inImage inBackground blurPercent (* (- 11 blurSize) 3)))
 		)
 	)
 
 	; Vignettatura
 	(if (> vignPercent 0)
 		(begin
-			(set! inBackground (lomo-border 1 inImage inBackground vignPercent))
+			(set! inBackground (lomo-border 1 inImage inBackground vignPercent (* (- 11 vignSize) 3)))
 		)
 	)
 
@@ -314,7 +314,9 @@
 	SF-IMAGE "Image" 0
 	SF-DRAWABLE "Livello da duplicare" 0
 	SF-ADJUSTMENT "Sfocatura intensità (%)" '(10 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura dimensione" '(8 1 10 1 10 0 0)
 	SF-ADJUSTMENT "Vignettatura intensità (%)" '(10 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura dimensione" '(8 1 10 1 10 0 0)
 )
 
 ; Inserisce i filtri nel menu di Gimp
