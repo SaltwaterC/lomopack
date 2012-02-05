@@ -241,6 +241,24 @@
 )
 
 ; -----------------------------------------------------------------------
+;
+; Lomo Border
+; Permette di scurire e sfumare i bordi
+;
+(define (script-fu-lomo-border inImage inBackground)
+	; Inizia cronologia
+	(gimp-image-undo-group-start inImage)
+
+	(lomo-border 0 inImage inBackground 0)
+	
+	; Chiude cronologia
+	(gimp-image-undo-group-end inImage)
+
+	; Aggiorna il video
+	(gimp-displays-flush)
+)
+
+; -----------------------------------------------------------------------
 ; Registra i filtri nel menu
 ; -----------------------------------------------------------------------
 (script-fu-register
@@ -273,6 +291,20 @@
 	SF-TOGGLE "Crea livelli separati" FALSE
 )
 
+(script-fu-register
+	"script-fu-lomo-border"
+	"Lomo Border"
+	"Sfuma e scurisce i bordi"
+	"any Jack" 
+	"2012"
+	"February 5, 2012"
+	"RGB*"
+	SF-IMAGE "Image" 0
+	SF-DRAWABLE "Livello da duplicare" 0
+	;SF-TOGGLE "Crea livelli separati" FALSE
+)
+
 ; Inserisce i filtri nel menu di Gimp
 (script-fu-menu-register "script-fu-lomo-color" "<Image>/Filters/Personal")
 (script-fu-menu-register "script-fu-lomo-burn" "<Image>/Filters/Personal")
+(script-fu-menu-register "script-fu-lomo-border" "<Image>/Filters/Personal")
