@@ -1,10 +1,20 @@
-; GIMP Lomopack v0.4
+; GIMP Lomopack v0.5
 ; Simula l'effetto di una "lomografia".
 ; 
-; Copiare il file lomopack.scm nella cartella scripts di Gimp. 
-; Se il programma è in esecuzione, aggiornare la lista dei filtri 
-; selezionando Filtri > Script-fu > Rinfresca gli scripts.
-; Il filtro lomo sarà così accessibile da Filtri > Personal > Lomo.
+; Copyright (C) 2012  Milo Martini
+;
+; This program is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+;
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 
 ; -----------------------------------------------------------------------
 ; Funzioni Condivise
@@ -277,7 +287,7 @@
 	"script-fu-lomo-color"
 	"Lomo Color"
 	"Genera un effetto Lomo"
-	"any Jack" 
+	"Milo Martini" 
 	"2012"
 	"February 4, 2012"
 	"RGB*"
@@ -294,7 +304,7 @@
 	"script-fu-lomo-burn"
 	"Lomo Burn"
 	"Crea un effetto casuale di bruciatura sulla pellicola"
-	"any Jack" 
+	"Milo Martini" 
 	"2012"
 	"February 4, 2012"
 	"RGB*"
@@ -307,7 +317,7 @@
 	"script-fu-lomo-border"
 	"Lomo Border"
 	"Sfuma e scurisce i bordi"
-	"any Jack" 
+	"Milo Martini"
 	"2012"
 	"February 5, 2012"
 	"RGB*"
@@ -322,6 +332,6 @@
 )
 
 ; Inserisce i filtri nel menu di Gimp
-(script-fu-menu-register "script-fu-lomo-color" "<Image>/Filters/Personal")
-(script-fu-menu-register "script-fu-lomo-burn" "<Image>/Filters/Personal")
-(script-fu-menu-register "script-fu-lomo-border" "<Image>/Filters/Personal")
+(script-fu-menu-register "script-fu-lomo-color" "<Image>/Filters/Jackroom")
+(script-fu-menu-register "script-fu-lomo-burn" "<Image>/Filters/Jackroom")
+(script-fu-menu-register "script-fu-lomo-border" "<Image>/Filters/Jackroom")
