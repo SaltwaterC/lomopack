@@ -1,11 +1,10 @@
 ; GIMP Lomopack v0.4
 ; Simula l'effetto di una "lomografia".
 ; 
-; Copiare il file lomo.scm nella cartella scripts di Gimp. Se il programma
-; è in esecuzione, aggiornare la lista dei filtri selezionando
-; Filtri > Script-fu > Rinfresca gli scripts.
+; Copiare il file lomopack.scm nella cartella scripts di Gimp. 
+; Se il programma è in esecuzione, aggiornare la lista dei filtri 
+; selezionando Filtri > Script-fu > Rinfresca gli scripts.
 ; Il filtro lomo sarà così accessibile da Filtri > Personal > Lomo.
-
 
 ; -----------------------------------------------------------------------
 ; Funzioni Condivise
@@ -24,7 +23,8 @@
 			; Imposta un raggio proporzionale per la sfocatura
 			(theWidth (car (gimp-drawable-width inBlur)))
 			(theHeight (car (gimp-drawable-height inBlur)))
-			(theBlursize (/ (/ (+ theHeight theWidth) 2) 100))
+			;(theBlursize (/ (/ (+ theHeight theWidth) 2) 100))
+			(theBlursize (/ (* (/ (+ theHeight theWidth) 20) theStrength) 100))
 			(theDrawable 0)
 			(theE 8)
 		)
@@ -159,7 +159,7 @@
 	;
 	(if (= theBlur 1)
 		(begin
-			(set! inBackground (lomo-border 0 inImage inBackground 0))
+			(set! inBackground (lomo-border 0 inImage inBackground 10))
 		)
 	)
 
@@ -245,12 +245,24 @@
 ; Lomo Border
 ; Permette di scurire e sfumare i bordi
 ;
-(define (script-fu-lomo-border inImage inBackground)
+(define (script-fu-lomo-border inImage inBackground blurPercent vignPercent)
 	; Inizia cronologia
 	(gimp-image-undo-group-start inImage)
-
-	(lomo-border 0 inImage inBackground 0)
 	
+	; Sfocatura (default 10%)
+	(if (> blurPercent 0)
+		(begin
+			(set! inBackground (lomo-border 0 inImage inBackground blurPercent))
+		)
+	)
+
+	; Vignettatura
+	(if (> vignPercent 0)
+		(begin
+			(set! inBackground (lomo-border 1 inImage inBackground vignPercent))
+		)
+	)
+
 	; Chiude cronologia
 	(gimp-image-undo-group-end inImage)
 
@@ -301,7 +313,8 @@
 	"RGB*"
 	SF-IMAGE "Image" 0
 	SF-DRAWABLE "Livello da duplicare" 0
-	;SF-TOGGLE "Crea livelli separati" FALSE
+	SF-ADJUSTMENT "Sfocatura intensità (%)" '(10 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura intensità (%)" '(10 0 100 1 10 0 0)
 )
 
 ; Inserisce i filtri nel menu di Gimp
