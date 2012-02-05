@@ -1,4 +1,4 @@
-; GIMP Lomo v0.3
+; GIMP Lomopack v0.4
 ; Simula l'effetto di una "lomografia".
 ; 
 ; Copiare il file lomo.scm nella cartella scripts di Gimp. Se il programma
@@ -8,8 +8,69 @@
 
 
 ; -----------------------------------------------------------------------
-; Lomo Burn
+; Funzioni Condivise
 ; -----------------------------------------------------------------------
+
+; -----------------------------------------------------------------------
+; (lomo-border azione immagine livello intensità)
+; Aggiunge ai bordi una sfocatura o una vignettatura
+; 
+; azione: 0 = sfocatura, 1 = vignettatura
+;
+(define (lomo-border theAction inImage inBackground theStrength)
+	(let* 
+		(
+			(inBlur (car (gimp-layer-copy inBackground TRUE)))
+			; Imposta un raggio proporzionale per la sfocatura
+			(theWidth (car (gimp-drawable-width inBlur)))
+			(theHeight (car (gimp-drawable-height inBlur)))
+			(theBlursize (/ (/ (+ theHeight theWidth) 2) 100))
+			(theDrawable 0)
+			(theE 8)
+		)
+
+		(gimp-image-add-layer inImage inBlur -1)
+			
+		(cond 
+			((= theAction 0)
+				(plug-in-gauss-rle RUN-NONINTERACTIVE inImage inBlur theBlursize TRUE TRUE)
+			)
+			((= theAction 1)
+				(gimp-levels inBlur HISTOGRAM-VALUE 0 255 1.00 0 (- 255 (/ (* theStrength 255) 100)))
+			)
+		)
+			
+		; Crea la maschera per il livello della sfocatura
+		(let
+			( (inMask (car (gimp-layer-create-mask inBlur ADD-WHITE-MASK))) )
+			(gimp-layer-add-mask inBlur inMask)
+		)
+			
+		; Disegna un'ellisse nella maschera
+		(set! theDrawable (car (gimp-image-get-active-drawable inImage)))
+		(gimp-ellipse-select inImage (/ theWidth theE) (/ theHeight theE) (- theWidth(* (/ theWidth theE) 2)) (- theHeight (* (/ theHeight theE) 2)) 2 TRUE FALSE 0)
+		(gimp-invert theDrawable)
+		(gimp-selection-none inImage)
+		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ theWidth 2) (/ theHeight 2))
+			
+		; Fonde il livello della sfocatura
+		(gimp-image-merge-down inImage inBlur 1)
+		; Attiva il livello modificato
+		(set! inBackground (car (gimp-image-get-active-drawable inImage)))
+		; inBackground
+	)
+)
+
+; -----------------------------------------------------------------------
+; Filtri del pacchetto Lomo
+; -----------------------------------------------------------------------
+
+; -----------------------------------------------------------------------
+; Lomo Burn
+; 
+; Applica all'immagine un effetto di bruciatura tipico delle macchine
+; con esposimetro difettoso.
+;
 (define (script-fu-lomo-burn inImage inBackground theMerge)
 
 	; Cronologia, inizio
@@ -61,7 +122,7 @@
 			; Modalità e opacità bruciatura rossa
 			(gimp-layer-set-mode inRed SCREEN-MODE)
 			(gimp-layer-set-opacity inRed (+ 60 (random 40)))
-		
+			
 			; Appiattisce i livelli se deciso
 			(if (= theMerge 0)
 				(begin
@@ -83,77 +144,38 @@
 
 ; -----------------------------------------------------------------------
 ; Lomo Color
-; -----------------------------------------------------------------------
+; 
+; Effetti di colore tipici delle foto scattate con pellicole ad alta 
+; saturazione. Vengono inoltre aggiunti effetti di sfocatura e 
+; vignettatura.
+; 
 (define (script-fu-lomo-color inImage inBackground theContrast theMerge theColor theBlur theVign)
 
 	; Avvia il gruppo della cronologia per questo script
 	(gimp-image-undo-group-start inImage)
 
-	(define (Border theAction)
-		(let* 
-			(
-				 (inBlur (car (gimp-layer-copy inBackground TRUE)))
-				 ; Imposta un raggio proporzionale per la sfocatura
-				 (theWidth (car (gimp-drawable-width inBlur)))
-				 (theHeight (car (gimp-drawable-height inBlur)))
-				 (theBlursize (/ (/ (+ theHeight theWidth) 2) 100))
-				 (theDrawable 0)
-				 (theE 8)
-			)
-
-			(gimp-image-add-layer inImage inBlur -1)
-			
-			(cond 
-				((= theAction 0)
-					(plug-in-gauss-rle RUN-NONINTERACTIVE inImage inBlur theBlursize TRUE TRUE)
-				)
-				((= theAction 1)
-					(gimp-levels inBlur HISTOGRAM-VALUE 0 255 1.00 0 (- 255 (/ (* theVign 255) 100)))
-				)
-			)
-			
-			; Crea la maschera per il livello della sfocatura
-			(let
-				( (inMask (car (gimp-layer-create-mask inBlur ADD-WHITE-MASK))) )
-				(gimp-layer-add-mask inBlur inMask)
-			)
-			
-			; Disegna un'ellisse nella maschera
-			(set! theDrawable (car (gimp-image-get-active-drawable inImage)))
-			(gimp-ellipse-select inImage (/ theWidth theE) (/ theHeight theE) (- theWidth(* (/ theWidth theE) 2)) (- theHeight (* (/ theHeight theE) 2)) 2 TRUE FALSE 0)
-			(gimp-invert theDrawable)
-			(gimp-selection-none inImage)
-			(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ theWidth 2) (/ theHeight 2))
-			
-			; Fonde il livello della sfocatura
-			(gimp-image-merge-down inImage inBlur 1)
-			; Attiva il livello modificato
-			(set! inBackground (car (gimp-image-get-active-drawable inImage)))
-		)
-	)
-
 	; ---------------------------------------------------------------------
 	; Aggiunge la sfocatura ai bordi
-	; ---------------------------------------------------------------------
+	;
 	(if (= theBlur 1)
 		(begin
-			(Border 0)
+			(set! inBackground (lomo-border 0 inImage inBackground 0))
 		)
 	)
 
 	; ---------------------------------------------------------------------
 	; Aggiunge un effetto di vignettatura
-	; ---------------------------------------------------------------------
+	; 
 	(if (> theVign 0)
 		(begin
-			(Border 1)
+			(set! inBackground (lomo-border 1 inImage inBackground theVign))
 		)
 	)
 
 	; ---------------------------------------------------------------------
 	; Effetto Lomo
 	; Da questo punto vengono applicati gli effetti di colore all'immagine
-	; ---------------------------------------------------------------------
+	; 
 	(let*
 		(
 		 ; Esegue la copia del livello per la tonalità
@@ -219,7 +241,7 @@
 )
 
 ; -----------------------------------------------------------------------
-; Attiva i filtri
+; Registra i filtri nel menu
 ; -----------------------------------------------------------------------
 (script-fu-register
 	"script-fu-lomo-color"
@@ -227,7 +249,7 @@
 	"Genera un effetto Lomo"
 	"any Jack" 
 	"2012"
-	"February 3, 2012"
+	"February 4, 2012"
 	"RGB*"
 	SF-IMAGE "Image" 0
 	SF-DRAWABLE "Livello da duplicare" 0
@@ -251,6 +273,6 @@
 	SF-TOGGLE "Crea livelli separati" FALSE
 )
 
-; Inscerisce i filtri nel menu di gimp
+; Inserisce i filtri nel menu di Gimp
 (script-fu-menu-register "script-fu-lomo-color" "<Image>/Filters/Personal")
 (script-fu-menu-register "script-fu-lomo-burn" "<Image>/Filters/Personal")
