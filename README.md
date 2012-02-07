@@ -1,41 +1,39 @@
 LomoPack
 ========
 
-Pacchetto di filtri script-fu per Gimp che simulano l'effetto Lomo.
-Testato con gimp 2.6
+Set of script-fu plugins to simulate a "lomo" effect.
+Gimp version tested: 2.6
 
-Installazione
--------------
+Installation
+------------
 
-1. Copiare il file lomopack.scm nella cartella scripts del gimp
-	(/home/utente/.gimp-2.6/scripts)
-2. Se il programma è in esecuzione, aggiornare la lista dei filtri
-	Filtri > Script-Fu > Rinfresca gli scripts
+1. Just copy lomopack.scm in the *scripts* directory of Gimp
+	> /home/user/.gimp-2.6/scripts
+2. Restart Gimp or refresh scripts from 
+	> Filters > Script-Fu
 
-Uso
----
+Basic Usage
+-----------
 
-I filtri sono accessibili da: Filtri > Jackroom
+Filters are located in: **Filters > Jackroom**
 
 ### Lomo Border
 
-Permette di aggiungere un effetto di sfocatura o di vignettatura agli
-angoli.
+Add a blur and a vignette effect to borders.
 
 ### Lomo Burn
 
-Genera una bruciatura casuale del fotogramma. Il filtro varia ogni volta
-l'intensità e la posizione della bruciatura
+Add a random film burn. Being random, there are no options. Just try.
 
 ### Lomo Color
 
-Il filtro principale, che permette di modificare i colori sul tipo di una
-pellicola ad alta saturazione. 
-Nel caso di immagini con ombre molto intense o forte contrasto, è
-consigliabile aggiungere luminosità o diminuire il contrasto usando i due
-controlli *[PRE]* posti in alto.
+This is the prime filter of the set. *Lomo Color* generates a vivid image
+as in high saturated films.
+With strong shadows it is recommended to add some luminosity; with high
+contrast images is better to remove some contrast using the *[PRE]* 
+options.
 
-Licenza
+License
 -------
 
 Copyright (C) 2012  Milo Martini
