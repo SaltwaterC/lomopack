@@ -1,4 +1,4 @@
-; GIMP Lomopack v0.5
+; GIMP Lomopack v0.5.1
 ; Simula l'effetto di una "lomografia".
 ; 
 ; Copyright (C) 2012  Milo Martini
