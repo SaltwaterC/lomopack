@@ -159,10 +159,15 @@
 ; saturazione. Vengono inoltre aggiunti effetti di sfocatura e 
 ; vignettatura.
 ; 
-(define (script-fu-lomo-color inImage inBackground theContrast theMerge theColor theBlur theVign)
+(define (script-fu-lomo-color inImage inBackground preBright preContrast theMerge theContrast theColor theBlur theVign)
 
 	; Avvia il gruppo della cronologia per questo script
 	(gimp-image-undo-group-start inImage)
+
+	; Aggiunge luminosità o toglie contrasto al livello
+	(if (or (> preBright 0) (< preContrast 100))
+		(gimp-brightness-contrast inBackground preBright preContrast)
+	)
 
 	; ---------------------------------------------------------------------
 	; Aggiunge la sfocatura ai bordi
@@ -293,8 +298,10 @@
 	"RGB*"
 	SF-IMAGE "Image" 0
 	SF-DRAWABLE "Livello da duplicare" 0
-	SF-TOGGLE "Aumenta il contrasto (Blu enfatizzati)" FALSE
+	SF-ADJUSTMENT "[PRE] Aumenta luminosità" '(0 0 100 1 10 0 0)
+	SF-ADJUSTMENT "[PRE] Diminuisci contrasto" '(0 -100 0 1 10 0 0)
 	SF-TOGGLE "Crea livelli separati" FALSE
+	SF-TOGGLE "Aumenta il contrasto (Blu enfatizzati)" FALSE
 	SF-TOGGLE "Colora (Rende i colori più vivaci)" FALSE
 	SF-TOGGLE "Aggiungi una sfocatura ai bordi" FALSE
 	SF-ADJUSTMENT "Vignettatura" '(0 0 100 1 10 0 0)
