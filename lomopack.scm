@@ -276,7 +276,7 @@
 )
 
 ; -----------------------------------------------------------------------
-; Register and insert filters in the gimp menu
+; Register and add filters to gimp menu
 ; -----------------------------------------------------------------------
 (script-fu-register
 	"script-fu-lomo-color"
