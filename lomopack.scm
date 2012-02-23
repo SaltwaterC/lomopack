@@ -1,5 +1,5 @@
-; GIMP Lomopack v0.5.1
-; Simula l'effetto di una "lomografia".
+; GIMP Lomopack v0.5.2
+; Apply a 'lomographic' effect
 ; 
 ; Copyright (C) 2012  Milo Martini
 ;
@@ -17,14 +17,14 @@
 ; along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 
 ; -----------------------------------------------------------------------
-; Funzioni Condivise
+; Shared functions
 ; -----------------------------------------------------------------------
 
 ; -----------------------------------------------------------------------
-; (lomo-border azione immagine livello intensità)
-; Aggiunge ai bordi una sfocatura o una vignettatura
+; (lomo-border action image level intensity)
+; Vignette and border-blur
 ; 
-; azione: 0 = sfocatura, 1 = vignettatura
+; action: 0 = blur, 1 = vignette
 ;
 (define (lomo-border theAction inImage inBackground theStrength theSize theSoftness)
 	(let* 
@@ -33,10 +33,10 @@
 			; Imposta un raggio proporzionale per la sfocatura
 			(theWidth (car (gimp-drawable-width inBlur)))
 			(theHeight (car (gimp-drawable-height inBlur)))
-			;(theBlursize (/ (/ (+ theHeight theWidth) 2) 100))
 			(theBlursize (/ (* (/ (+ theHeight theWidth) 20) theStrength) 100))
 			(theDrawable 0)
 			(theE theSize)
+			(theS (- 101 theSoftness))
 		)
 
 		(gimp-image-add-layer inImage inBlur -1)
@@ -50,7 +50,7 @@
 			)
 		)
 			
-		; Crea la maschera per il livello della sfocatura
+		; Mask the blur layer
 		(let
 			( (inMask (car (gimp-layer-create-mask inBlur ADD-WHITE-MASK))) )
 			(gimp-layer-add-mask inBlur inMask)
@@ -58,96 +58,92 @@
 			
 		; Disegna un'ellisse nella maschera
 		(set! theDrawable (car (gimp-image-get-active-drawable inImage)))
-		(gimp-ellipse-select inImage (/ theWidth theE) (/ theHeight theE) (- theWidth(* (/ theWidth theE) 2)) (- theHeight (* (/ theHeight theE) 2)) 2 TRUE FALSE 0)
-		(gimp-invert theDrawable)
-		(gimp-selection-none inImage)
-		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ (* (/ theWidth 2) theSoftness) 100) (/ (* (/ theHeight 2) theSoftness) 100))
-			
-		; Fonde il livello della sfocatura
+		; Apply a radial gradient mask (default type)
+		(gimp-context-get-gradient "Default")
+		(gimp-edit-blend theDrawable 3 0 2 100 theS REPEAT-NONE FALSE FALSE 0 0 FALSE (/ theWidth 2) (/ theHeight 2) (/ theWidth theE) (/ theHeight theE))
+		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ (* (/ theWidth 10) theSoftness) 100) (/ (* (/ theHeight 10) theSoftness) 100))
+		
+		; Merge the blur layer
 		(gimp-image-merge-down inImage inBlur 1)
-		; Attiva il livello modificato
+		; Activate modified layer
 		(set! inBackground (car (gimp-image-get-active-drawable inImage)))
 		; inBackground
 	)
 )
 
 ; -----------------------------------------------------------------------
-; Filtri del pacchetto Lomo
+; Lomo-pack filters
 ; -----------------------------------------------------------------------
 
 ; -----------------------------------------------------------------------
 ; Lomo Burn
 ; 
-; Applica all'immagine un effetto di bruciatura tipico delle macchine
-; con esposimetro difettoso.
+; Apply a film burn effect.
 ;
 (define (script-fu-lomo-burn inImage inBackground theMerge)
 
-	; Cronologia, inizio
+	; Undos, Start
 	(gimp-image-undo-group-start inImage)
 
 	(let*
 		(
-			; Copia il livello per il rosso
+			; Duplicate layer (red)
 		 	(inRed (car (gimp-layer-copy inBackground TRUE)))
-			; Definisce le dimensioni dell'immagine
+			; Set the image size
 		 	(theWidth (car (gimp-drawable-width inBackground)))
 			(theHeight (car (gimp-drawable-height inBackground)))
 			(theDrawable 0)
 		)
 
-		; Inserisce il livello rosso
+		; Insert red-layer
 		(gimp-image-add-layer inImage inRed -1)
-		; Riflette il livello in orizzontale
+		; Horizontal reflection
 		(gimp-drawable-transform-flip-simple inRed 0 TRUE 0.0 TRUE)
-		; Applica sfocatura e colore
+		; Burn and color effect
 		(gimp-levels inRed HISTOGRAM-GREEN 0 255 1.00 0 0)
 		(gimp-levels inRed HISTOGRAM-BLUE 0 255 1.00 0 0)
-		; Imposta una sfocatura casuale orizzontale e verticale.
-		; La sfocatura orizzontale ha un valore casuale tra 10 e 40 pixel
-		; La sfocatura verticale è di un terzo dell'altezza della foto
+		; Apply a random blur (vertical and horizontal)
+		; Horizontal blur range varies between 10 and 40 pixels
+		; Vertical blur size is a third of the layer height
 		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage inRed (+ 10 (random 30)) (/ theHeight 3))
 
-		; Aggiunge una maschera al livello
+		; Add a layer mask
 		(let
 			( (inMask (car (gimp-layer-create-mask inRed ADD-WHITE-MASK))) )
 			(gimp-layer-add-mask inRed inMask)
 		)
-		; Riempie la maschera con il gradiente Default
+		; Fill the layer mask with default gradient
 		(set! theDrawable (car (gimp-image-get-active-drawable inImage)))
 		(gimp-context-get-gradient "Default")
-		; Applica il gradiente selezionando dei punti a caso nell'immagine
+		; Select two random points to apply the gradient
 		(gimp-edit-blend theDrawable 3 0 0 100 0 REPEAT-NONE FALSE FALSE 0 0 FALSE (random theWidth) (random theHeight) (random theWidth) (random theHeight))
 		
-		; Duplica il livello per il giallo
+		; Duplicate layer (yellow)
 		(let
 			((inYellow (car (gimp-layer-copy inRed TRUE))))
 			(gimp-image-add-layer inImage inYellow -1)
-			; Cambia la tonalità della bruciatura gialla
+			; Modify hue and set the layer-mode
 			(gimp-hue-saturation inYellow 0 25 0 0)
-			; Modalità livello Tonalità
 			(gimp-layer-set-mode inYellow ADDITION-MODE)
 			(gimp-layer-set-opacity inYellow (+ 20 (random 30)))
 
-			; Modalità e opacità bruciatura rossa
+			; Layer mode for red (screen)
 			(gimp-layer-set-mode inRed SCREEN-MODE)
 			(gimp-layer-set-opacity inRed (+ 60 (random 40)))
 			
-			; Appiattisce i livelli se deciso
+			; Merge layers if selected
 			(if (= theMerge 0)
 				(begin
-					; Unisce il livello della tonalità allo sfondo
 					(gimp-image-merge-down inImage inRed 1)
-					; Unisce il livello della saturazione
 					(gimp-image-merge-down inImage inYellow 1)
 				)
 			)
 		)
 
-		; Cronologia, fine
+		; Undos, End
 		(gimp-image-undo-group-end inImage)
 
-		; Aggiorna l'immagine
+		; Update the image
 		(gimp-displays-flush)
 	)
 )
@@ -155,71 +151,67 @@
 ; -----------------------------------------------------------------------
 ; Lomo Color
 ; 
-; Effetti di colore tipici delle foto scattate con pellicole ad alta 
-; saturazione. Vengono inoltre aggiunti effetti di sfocatura e 
-; vignettatura.
+; Color effects as in high-saturated films with blur and vignette
 ; 
 (define (script-fu-lomo-color inImage inBackground preBright preContrast theMerge theContrast theColor theBlur theVign)
 
-	; Avvia il gruppo della cronologia per questo script
+	; Undos, Start
 	(gimp-image-undo-group-start inImage)
 
-	; Aggiunge luminosità o toglie contrasto al livello
+	; Add luminosity, remove contrast
 	(if (or (> preBright 0) (< preContrast 100))
 		(gimp-brightness-contrast inBackground preBright preContrast)
 	)
 
 	; ---------------------------------------------------------------------
-	; Aggiunge la sfocatura ai bordi
+	; Border-blur
 	;
 	(if (= theBlur 1)
 		(begin
-			(set! inBackground (lomo-border 0 inImage inBackground 10 9 100))
+			(set! inBackground (lomo-border 0 inImage inBackground 20 9 70))
 		)
 	)
 
 	; ---------------------------------------------------------------------
-	; Aggiunge un effetto di vignettatura
+	; Vignette
 	; 
 	(if (> theVign 0)
 		(begin
-			(set! inBackground (lomo-border 1 inImage inBackground theVign 9 100))
+			(set! inBackground (lomo-border 1 inImage inBackground theVign 9 70))
 		)
 	)
 
 	; ---------------------------------------------------------------------
-	; Effetto Lomo
-	; Da questo punto vengono applicati gli effetti di colore all'immagine
+	; Lomo color effects
 	; 
 	(let*
 		(
-		 ; Esegue la copia del livello per la tonalità
+		 ; Duplicate layer (tonality)
 		 (inTonal (car (gimp-layer-copy inBackground TRUE)))
-		 ; Copia il livello per la desaturazione
+		 ; Duplicate layer (desaturate)
 		 (inDesat (car (gimp-layer-copy inBackground TRUE)))
 		)
 
-		; Inserisce il livello tonalità
+		; Insert duplicated layers
 		(gimp-image-add-layer inImage inTonal -1)
-		; Inserisce il livello da desaturare
 		(gimp-image-add-layer inImage inDesat -1)
 
-		; Inverte i livelli del canale blu del livello principale
+		; Invert blue channel levels
 		(gimp-levels inBackground HISTOGRAM-BLUE 0 255 1.00 255 0)
 
-		; Imposta la modalità della tonalità come Luce Forte
+		; Change layer-mode for the tonality
 		(gimp-layer-set-mode inTonal HARDLIGHT-MODE)
 		
-		; Desatura l'ultimo livello
+		; Desaturate last level
 		(gimp-desaturate-full inDesat DESATURATE-LUMINOSITY)
-		; Modalità livello desaturazione: Solo Toni Scuri
+		; Change mode for the desaturated layer
 		(gimp-layer-set-mode inDesat DARKEN-ONLY-MODE)
-		; Regola livelli (contrasta)
+		; Modify levels to add contrast
 		(gimp-levels inDesat HISTOGRAM-VALUE 40 215 1.00 0 255)
-		; Imposta Opacità al 40%
+		; Set opacity layer to 40%
 		(gimp-layer-set-opacity inDesat 40)
 		
-		; Aumenta il contrasto regolando le curve di inTonal
+		; Change inTonal curves to add contrast
 		(if (= theContrast 1)
 			(begin
 				(gimp-curves-spline inTonal 0 8 #( 0 0 70 50 195 215 255 255))
@@ -229,27 +221,25 @@
 			)
 		)
 
-		; Aggiunge del colore
+		; Colorize
 		(if (= theColor 1)
 			(begin
 				(plug-in-retinex RUN-NONINTERACTIVE inImage inBackground 80 3 2 1.9)
 			)
 		)
 
-		; Appiattisce i livelli se deciso
+		; Merge layers
 		(if (= theMerge 0)
 			(begin
-				; Unisce il livello della tonalità allo sfondo
 				(gimp-image-merge-down inImage inTonal 1)
-				; Unisce il livello della saturazione
 				(gimp-image-merge-down inImage inDesat 1)
 			)
 		)
 		
-		; Chiude il gruppo della cronologia
+		; Undos, End
 		(gimp-image-undo-group-end inImage)
 
-		; Aggiorna l'immagine
+		; Update image
 		(gimp-displays-flush)
 	)
 
@@ -258,35 +248,35 @@
 ; -----------------------------------------------------------------------
 ;
 ; Lomo Border
-; Permette di scurire e sfumare i bordi
+; Vignette and blur effect
 ;
 (define (script-fu-lomo-border inImage inBackground blurPercent blurSize blurSoft vignPercent vignSize vignSoft)
-	; Inizia cronologia
+	; Undos, Start
 	(gimp-image-undo-group-start inImage)
 	
-	; Sfocatura (default 10%)
+	; Blur effect (default 10%)
 	(if (> blurPercent 0)
 		(begin
 			(set! inBackground (lomo-border 0 inImage inBackground blurPercent (* (- 11 blurSize) 3) blurSoft))
 		)
 	)
 
-	; Vignettatura
+	; Vignette
 	(if (> vignPercent 0)
 		(begin
 			(set! inBackground (lomo-border 1 inImage inBackground vignPercent (* (- 11 vignSize) 3) vignSoft))
 		)
 	)
 
-	; Chiude cronologia
+	; Undos, End
 	(gimp-image-undo-group-end inImage)
 
-	; Aggiorna il video
+	; Update image
 	(gimp-displays-flush)
 )
 
 ; -----------------------------------------------------------------------
-; Registra i filtri nel menu
+; Register and insert filters in the gimp menu
 ; -----------------------------------------------------------------------
 (script-fu-register
 	"script-fu-lomo-color"
@@ -330,15 +320,15 @@
 	"RGB*"
 	SF-IMAGE "Image" 0
 	SF-DRAWABLE "Livello da duplicare" 0
-	SF-ADJUSTMENT "Sfocatura (%)" '(10 0 100 1 10 0 0)
-	SF-ADJUSTMENT "Sfocatura dimensione" '(8 1 10 1 10 0 0)
-	SF-ADJUSTMENT "Sfocatura morbidezza" '(100 1 100 1 10 0 0)
-	SF-ADJUSTMENT "Vignettatura (%)" '(10 0 100 1 10 0 0)
-	SF-ADJUSTMENT "Vignettatura dimensione" '(8 1 10 1 10 0 0)
-	SF-ADJUSTMENT "Vignettatura morbidezza" '(100 1 100 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura (%)" '(20 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura dimensione" '(3 1 10 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura morbidezza" '(50 1 100 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura (%)" '(30 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura dimensione" '(3 1 10 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura morbidezza" '(50 1 100 1 10 0 0)
 )
 
-; Inserisce i filtri nel menu di Gimp
+; Insert filters in the menu
 (script-fu-menu-register "script-fu-lomo-color" "<Image>/Filters/Jackroom")
 (script-fu-menu-register "script-fu-lomo-burn" "<Image>/Filters/Jackroom")
 (script-fu-menu-register "script-fu-lomo-border" "<Image>/Filters/Jackroom")
