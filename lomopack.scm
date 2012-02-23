@@ -1,5 +1,5 @@
-; GIMP Lomopack v0.5.1
-; Apply a 'lomography' effect
+; GIMP Lomopack v0.5.2
+; Apply a 'lomographic' effect
 ; 
 ; Copyright (C) 2012  Milo Martini
 ;
@@ -33,10 +33,10 @@
 			; Imposta un raggio proporzionale per la sfocatura
 			(theWidth (car (gimp-drawable-width inBlur)))
 			(theHeight (car (gimp-drawable-height inBlur)))
-			;(theBlursize (/ (/ (+ theHeight theWidth) 2) 100))
 			(theBlursize (/ (* (/ (+ theHeight theWidth) 20) theStrength) 100))
 			(theDrawable 0)
 			(theE theSize)
+			(theS (- 101 theSoftness))
 		)
 
 		(gimp-image-add-layer inImage inBlur -1)
@@ -50,7 +50,7 @@
 			)
 		)
 			
-		; Add a mask to blur layer
+		; Mask the blur layer
 		(let
 			( (inMask (car (gimp-layer-create-mask inBlur ADD-WHITE-MASK))) )
 			(gimp-layer-add-mask inBlur inMask)
@@ -58,11 +58,11 @@
 			
 		; Disegna un'ellisse nella maschera
 		(set! theDrawable (car (gimp-image-get-active-drawable inImage)))
-		(gimp-ellipse-select inImage (/ theWidth theE) (/ theHeight theE) (- theWidth(* (/ theWidth theE) 2)) (- theHeight (* (/ theHeight theE) 2)) 2 TRUE FALSE 0)
-		(gimp-invert theDrawable)
-		(gimp-selection-none inImage)
-		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ (* (/ theWidth 2) theSoftness) 100) (/ (* (/ theHeight 2) theSoftness) 100))
-			
+		; Apply a radial gradient mask (default type)
+		(gimp-context-get-gradient "Default")
+		(gimp-edit-blend theDrawable 3 0 2 100 theS REPEAT-NONE FALSE FALSE 0 0 FALSE (/ theWidth 2) (/ theHeight 2) (/ theWidth theE) (/ theHeight theE))
+		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage theDrawable (/ (* (/ theWidth 10) theSoftness) 100) (/ (* (/ theHeight 10) theSoftness) 100))
+		
 		; Merge the blur layer
 		(gimp-image-merge-down inImage inBlur 1)
 		; Activate modified layer
@@ -103,7 +103,7 @@
 		(gimp-levels inRed HISTOGRAM-GREEN 0 255 1.00 0 0)
 		(gimp-levels inRed HISTOGRAM-BLUE 0 255 1.00 0 0)
 		; Apply a random blur (vertical and horizontal)
-		; Horizontal blur size is a range between 10 and 40 pixels
+		; Horizontal blur range varies between 10 and 40 pixels
 		; Vertical blur size is a third of the layer height
 		(plug-in-gauss-rle2 RUN-NONINTERACTIVE inImage inRed (+ 10 (random 30)) (/ theHeight 3))
 
@@ -168,7 +168,7 @@
 	;
 	(if (= theBlur 1)
 		(begin
-			(set! inBackground (lomo-border 0 inImage inBackground 10 9 100))
+			(set! inBackground (lomo-border 0 inImage inBackground 20 9 70))
 		)
 	)
 
@@ -177,7 +177,7 @@
 	; 
 	(if (> theVign 0)
 		(begin
-			(set! inBackground (lomo-border 1 inImage inBackground theVign 9 100))
+			(set! inBackground (lomo-border 1 inImage inBackground theVign 9 70))
 		)
 	)
 
@@ -320,12 +320,12 @@
 	"RGB*"
 	SF-IMAGE "Image" 0
 	SF-DRAWABLE "Livello da duplicare" 0
-	SF-ADJUSTMENT "Sfocatura (%)" '(10 0 100 1 10 0 0)
-	SF-ADJUSTMENT "Sfocatura dimensione" '(8 1 10 1 10 0 0)
-	SF-ADJUSTMENT "Sfocatura morbidezza" '(100 1 100 1 10 0 0)
-	SF-ADJUSTMENT "Vignettatura (%)" '(10 0 100 1 10 0 0)
-	SF-ADJUSTMENT "Vignettatura dimensione" '(8 1 10 1 10 0 0)
-	SF-ADJUSTMENT "Vignettatura morbidezza" '(100 1 100 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura (%)" '(20 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura dimensione" '(3 1 10 1 10 0 0)
+	SF-ADJUSTMENT "Sfocatura morbidezza" '(50 1 100 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura (%)" '(30 0 100 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura dimensione" '(3 1 10 1 10 0 0)
+	SF-ADJUSTMENT "Vignettatura morbidezza" '(50 1 100 1 10 0 0)
 )
 
 ; Insert filters in the menu
